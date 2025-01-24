@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- ===== Iconscout CSS ===== -->
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css" />
+    <!-- ===== CSS ===== -->
+    <link rel="stylesheet" href="style.css" />
+    <title>Login & Registration Form</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="forms">
+       <!-- Login Form -->
+<div class="form login">
+  <span class="title">SerenityMind</span>
+
+  <form action="#" id="loginForm">
+    <div class="input-field">
+      <input type="text" id="loginEmail" placeholder="Enter your email" required />
+      <i class="uil uil-envelope icon"></i>
+    </div>
+    <div class="input-field">
+      <input type="password" id="loginPassword" class="password" placeholder="Enter your password" required />
+      <i class="uil uil-lock icon"></i>
+      <i class="uil uil-eye-slash showHidePw"></i>
+    </div>
+
+    <div class="checkbox-text">
+      <div class="checkbox-content">
+        <input type="checkbox" id="logCheck" />
+        <label for="logCheck" class="text">Remember me</label>
+      </div>
+      <a href="#" class="text">Forgot password?</a>
+    </div>
+
+    <div class="input-field button">
+      <input type="button" value="Login" id="loginButton" />
+    </div>
+  </form>
+
+  <div class="login-signup">
+    <span class="text">
+      Not a member?
+      <a href="#" class="text signup-link">Signup Now</a>
+    </span>
+  </div>
+</div>
+
+
+        <!-- Registration Form -->
+<!-- Registration Form -->
+<div class="form signup">
+  <span class="title">SerenityMind</span>
+
+  <form id="registerForm" action="#">
+    <div class="input-field">
+      <input id="username" type="text" placeholder="Enter your name" required />
+      <i class="uil uil-user"></i>
+    </div>
+    <div class="input-field">
+      <input type="text" id="emailRegister" placeholder="Enter your email" required />
+      <i class="uil uil-envelope icon"></i>
+    </div>
+    <div class="input-field">
+      <input type="password" id="passwordRegister" class="password" placeholder="Create a password" required />
+      <i class="uil uil-lock icon"></i>
+    </div>
+    <div class="input-field">
+      <input type="password" id="confirmPassword" class="password" placeholder="Confirm a password" required />
+      <i class="uil uil-lock icon"></i>
+      <i class="uil uil-eye-slash showHidePw"></i>
+    </div>
+
+    <div class="checkbox-text">
+      <div class="checkbox-content">
+        <input type="checkbox" id="termCon" />
+        <label for="termCon" class="text">I accepted all terms and conditions</label>
+      </div>
+    </div>
+
+    <div class="input-field button">
+      <input type="submit" value="Signup" />
+    </div>
+  </form>
+
+  <div class="login-signup">
+    <span class="text"
+      >Already a member?
+      <a href="#" class="text login-link">Login Now</a>
+    </span>
+  </div>
+</div>
+
+      </div>
+    </div>
+    <div class="spinner-overlay" id="spinner" style="display: none;">
+  <div class="lds-ripple">
+    <div></div>
+    <div></div>
+  </div>
+</div>
+
+    
+<!-- Enhanced Success Modal -->
+<div id="successModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h2 class="modal-title">Welcome to SerenityMind</h2>
+    <p class="modal-subtitle">Your AI Therapist - Empowering Your Mind, One Step at a Time</p>
+    <button id="continueButton" class="modal-button">Continue</button>
+  </div>
+</div>
+
+
+
+    <script src="script.js"></script>
+     </script>
+  
+  <script type="module">
+ // Import necessary Firebase SDKs
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyD2vuMhkA45Yhwn_TrZSVlMsQs_xyUaC_8",
+  authDomain: "ai-therapist-87aca.firebaseapp.com",
+  projectId: "ai-therapist-87aca",
+  storageBucket: "ai-therapist-87aca.firebasestorage.app",
+  messagingSenderId: "233251561959",
+  appId: "1:233251561959:web:66d565fb27461208af5d42",
+  measurementId: "G-TFD7JXNZK6",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+// Function to generate a random session ID
+function generateSessionId() {
+  const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generate 6-digit number
+  return `sessionid=${randomNumber}`;
+}
+
+function showSuccessModal() {
+  const modal = document.getElementById("successModal");
+  const body = document.body;
+
+  // Show the modal and disable background interaction
+  modal.style.display = "block";
+  body.classList.add("modal-open"); // Prevent background scrolling and interaction
+
+  document.getElementById("continueButton").onclick = function () {
+    modal.style.display = "none";
+      window.location.href = "public/index.html";
+  }
+}
+
+
+
+
+
+
+// Handle registration form submission
+
+document.getElementById("registerForm").addEventListener("submit", async function (e) {
+  e.preventDefault(); // Prevent default form submission
+
+  const spinner = document.getElementById("spinner");
+  const body = document.body;
+
+  // Show spinner and disable background interaction
+  spinner.style.display = "flex";
+  body.classList.add("modal-open");
+
+  // Get user input values
+  const username = document.getElementById("username").value;
+  const email = document.getElementById("emailRegister").value;
+  const password = document.getElementById("passwordRegister").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  // Validate password match
+  if (password !== confirmPassword) {
+    alert("Passwords do not match. Please try again.");
+    spinner.style.display = "none"; // Hide spinner
+    body.classList.remove("modal-open"); // Re-enable background interaction
+    return;
+  }
+
+  // Validate terms and conditions
+  if (!document.getElementById("termCon").checked) {
+    alert("You must accept the terms and conditions.");
+    spinner.style.display = "none"; // Hide spinner
+    body.classList.remove("modal-open"); // Re-enable background interaction
+    return;
+  }
+
+  try {
+    // Firebase authentication logic
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    const sessionId = generateSessionId();
+
+    await setDoc(doc(db, "users", user.uid), {
+      username: username,
+      email: email,
+      password: password,
+      sessionid: sessionId,
+    });
+
+    // Show success modal
+    showSuccessModal();
+  } catch (error) {
+    const errorCode = error.code;
+    const errorMessage = error.message;
+
+    if (errorCode === "auth/weak-password") {
+      alert("The password is too weak.");
+    } else if (errorCode === "auth/email-already-in-use") {
+      alert("This email is already registered.");
+    } else {
+      alert("Error: " + errorMessage);
+    }
+  } finally {
+    // Hide spinner and re-enable background interaction
+    spinner.style.display = "none";
+    body.classList.remove("modal-open");
+  }
+});
+
+function showSuccessModals(message) {
+  const modal = document.getElementById("successModal");
+  const body = document.body;
+
+  // Show the modal and disable background interaction
+  modal.style.display = "block";
+  body.classList.add("modal-open");
+
+  const title = document.querySelector(".modal-title");
+  const subtitle = document.querySelector(".modal-subtitle");
+  
+  title.innerText = "SerenityMind Ai";
+  subtitle.innerText = message;
+
+  document.getElementById("continueButton").onclick = function () {
+    modal.style.display = "none";
+    window.location.href = "public/index.html"; // Redirect to homepage or dashboard
+  }
+}
+
+let sessionId = null; // Global variable to store session ID
+
+// Handle login form submission
+document.getElementById("loginButton").addEventListener("click", async function () {
+  const spinner = document.getElementById("spinner");
+  const body = document.body;
+
+  // Show spinner and disable background interaction
+  spinner.style.display = "flex";
+  body.classList.add("modal-open");
+
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    // Firebase authentication login logic
+    const userCredential = await signInWithEmailAndPassword(getAuth(), email, password);
+    const user = userCredential.user;
+
+    // Retrieve session ID from Firestore
+    const db = getFirestore();
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+      sessionId = userDoc.data().sessionid; // Store the session ID
+      console.log("Session ID:", sessionId);
+    } else {
+      console.error("No user document found!");
+    }
+
+    // Show success modal with username
+    const username = userDoc.data().username || "User";
+    showSuccessModals(`Welcome back, ${username}!`);
+  } catch (error) {
+    const errorCode = error.code;
+    const errorMessage = error.message;
+
+    if (errorCode === "auth/user-not-found") {
+      alert("No user found with this email.");
+    } else if (errorCode === "auth/wrong-password") {
+      alert("Incorrect password.");
+    } else {
+      alert("Error: " + errorMessage);
+    }
+  } finally {
+    // Hide spinner and re-enable background interaction
+    spinner.style.display = "none";
+    body.classList.remove("modal-open");
+  }
+});
+
+
+
+    </script>
+    
+  </body>
+</html>
