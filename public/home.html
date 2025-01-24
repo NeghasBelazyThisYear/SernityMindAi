@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>SerenityMind</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts Link For Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0" />
+
+     <style>
+     
+body, html {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  justify-content: center; /* Horizontally center */
+  align-items: center; /* Vertically center */
+  font-family: Arial, sans-serif; /* Adding a font family for better readability */
+  background-color: #f4f4f9; /* Light background color */
+}
+
+h1 {
+  text-align: center;
+  font-size: 36px;
+  font-weight: bold;
+  color: #6A5ACD;
+  margin-bottom: 20px;
+}
+
+/* Styling for the description text */
+.description {
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+  max-width: 600px;
+  margin: 0 auto 40px;
+  line-height: 1.8;
+  font-weight: 400;
+}
+
+.description span {
+  color: #6A5ACD;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+
+
+        
+       
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>Welcome to SerenityMind</h1>
+      <p class="description">
+        <span>Your AI therapist</span> is here to help you navigate through life's challenges. Whether you're dealing with stress, anxiety, or simply looking for some guidance, we're here to provide compassionate support and insightful conversations.
+        Conversations are stored locally to keep them private,
+        ensuring that you'll always feel comfortable and secure 
+        sharing your thoughts
+      </p>
+      <button class="chatbot-toggler">
+        <span class="material-symbols-rounded">mode_comment</span>
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <div class="chatbot">
+        <header>
+          <h2>SerenityMind</h2>
+          <span class="close-btn material-symbols-outlined">close</span>
+        </header>
+        <ul class="chatbox">
+          <li class="chat incoming">
+          
+          </li>
+        </ul>
+        <div class="chat-input">
+          <textarea placeholder="Enter a message..." spellcheck="false" required></textarea>
+          <span id="send-btn" class="material-symbols-rounded">send</span>
+        </div>
+      </div>
+    </div>
+  </body>
+<script type="module">
+  // Import necessary Firebase SDKs
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyD2vuMhkA45Yhwn_TrZSVlMsQs_xyUaC_8",
+    authDomain: "ai-therapist-87aca.firebaseapp.com",
+    projectId: "ai-therapist-87aca",
+    storageBucket: "ai-therapist-87aca.firebasestorage.app",
+    messagingSenderId: "233251561959",
+    appId: "1:233251561959:web:66d565fb27461208af5d42",
+    measurementId: "G-TFD7JXNZK6",
+  };
+
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const chatbotToggler = document.querySelector(".chatbot-toggler");
+  const closeBtn = document.querySelector(".close-btn");
+  const chatbox = document.querySelector(".chatbox");
+  const chatInput = document.querySelector(".chat-input textarea");
+  const sendChatBtn = document.querySelector(".chat-input span");
+
+  let userMessage = null; // Variable to store user's message
+  let sessionid = null; // Variable to store sessionid from Firestore
+  const inputInitHeight = chatInput.scrollHeight;
+
+  const API_URL = "https://apigemeni-4.onrender.com/api/ask?prompt=";
+
+  const createChatLi = (message, className) => {
+    const chatLi = document.createElement("li");
+    chatLi.classList.add("chat", `${className}`);
+    const chatContent =
+      className === "outgoing"
+        ? `<p></p>`
+        : `<span class="material-symbols-outlined">smart_toy</span><p></p>`;
+    chatLi.innerHTML = chatContent;
+    chatLi.querySelector("p").textContent = message;
+    return chatLi;
+  };
+
+  // Function to generate a response from the API
+  const generateResponse = async (chatElement) => {
+    console.log("Current sessionid:", sessionid); // Debugging sessionid
+    const messageElement = chatElement.querySelector("p");
+
+    if (!sessionid) {
+      messageElement.textContent = "Error: sessionid not available. Please log in again.";
+      return;
+    }
+
+    const requestUrl = `${API_URL}${encodeURIComponent(userMessage)}&sessionid=${sessionid}`;
+
+    try {
+      const response = await fetch(requestUrl);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error.message);
+
+      messageElement.textContent = data.response || "No response from the server.";
+    } catch (error) {
+      messageElement.classList.add("error");
+      messageElement.textContent = `Error: ${error.message}`;
+    } finally {
+      chatbox.scrollTo(0, chatbox.scrollHeight);
+      saveConversationToLocalStorage();
+    }
+  };
+
+  
+  const saveConversationToLocalStorage = () => {
+    const conversation = [];
+    const chatItems = document.querySelectorAll(".chatbox li");
+    chatItems.forEach((item) => {
+      conversation.push({
+        message: item.querySelector("p").textContent,
+        sender: item.classList.contains("outgoing") ? "user" : "bot",
+        timestamp: new Date().toISOString(),
+      });
+    });
+    localStorage.setItem("conversation", JSON.stringify(conversation));
+  };
+
+  const loadConversationFromLocalStorage = () => {
+    const savedConversation = localStorage.getItem("conversation");
+    if (savedConversation) {
+      const conversation = JSON.parse(savedConversation);
+      conversation.forEach((chat) => {
+        const messageElement = createChatLi(chat.message, chat.sender === "user" ? "outgoing" : "incoming");
+        chatbox.appendChild(messageElement);
+        messageElement.querySelector("p").textContent = chat.message;
+      });
+      chatbox.scrollTo(0, chatbox.scrollHeight);
+    }
+  };
+
+  
+  const handleChat = () => {
+    userMessage = chatInput.value.trim();
+    if (!userMessage) return;
+
+    chatInput.value = "";
+    chatInput.style.height = `${inputInitHeight}px`;
+
+    chatbox.appendChild(createChatLi(userMessage, "outgoing"));
+    chatbox.scrollTo(0, chatbox.scrollHeight);
+
+    setTimeout(() => {
+      const incomingChatLi = createChatLi("Thinking...", "incoming");
+      chatbox.appendChild(incomingChatLi);
+      chatbox.scrollTo(0, chatbox.scrollHeight);
+      generateResponse(incomingChatLi);
+    }, 600);
+  };
+
+  
+  chatInput.addEventListener("input", () => {
+    chatInput.style.height = `${inputInitHeight}px`;
+    chatInput.style.height = `${chatInput.scrollHeight}px`;
+  });
+
+  
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 800) {
+      e.preventDefault();
+      handleChat();
+    }
+  });
+
+  
+  sendChatBtn.addEventListener("click", handleChat);
+
+
+  chatbotToggler.addEventListener("click", () => document.body.classList.toggle("show-chatbot"));
+  closeBtn.addEventListener("click", () => document.body.classList.remove("show-chatbot"));
+
+ 
+  const checkUserSession = () => {
+    const savedSessionid = localStorage.getItem('sessionid');
+    if (savedSessionid) {
+      sessionid = savedSessionid;
+      console.log('Session ID loaded from localStorage:', sessionid);
+      return;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userId = user.uid;
+
+     
+        try {
+          const userDoc = await getDoc(doc(db, "users", userId));
+          if (userDoc.exists()) {
+            sessionid = userDoc.data().sessionid; // Corrected casing
+            localStorage.setItem('sessionid', sessionid); // Save sessionid to localStorage
+            console.log("sessionid fetched successfully:", sessionid);
+          } else {
+            console.error("No sessionid found for this user in Firestore.");
+          }
+        } catch (error) {
+          console.error("Error fetching sessionid:", error);
+        }
+      } else {
+        console.error("No user is logged in. sessionid cannot be set.");
+        sessionid = null; 
+      }
+    });
+  };
+
+
+  window.addEventListener("load", () => {
+    loadConversationFromLocalStorage();
+    checkUserSession();
+  });
+</script>
+
+</html>
